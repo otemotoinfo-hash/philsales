@@ -162,6 +162,23 @@ tr:hover td{background:#fafaf8}
 @media(max-width:768px){.hamburger{display:block}}
 .overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
 .overlay-bg.show{display:block}
+
+/* ===== EDIT MODAL ===== */
+.edit-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;display:none;align-items:center;justify-content:center;padding:16px}
+.edit-modal-overlay.show{display:flex}
+.edit-modal{background:#fff;border-radius:16px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.2)}
+.edit-modal-header{padding:20px 24px 16px;border-bottom:1px solid #f0ede8;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.edit-modal-title{font-size:16px;font-weight:600}
+.edit-modal-body{padding:20px 24px 24px}
+.edit-modal-close{background:none;border:none;cursor:pointer;font-size:18px;color:#aaa;padding:4px}
+
+/* ===== JPY PROFIT BOX ===== */
+.jpy-profit-box{background:#fff8e6;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-top:12px}
+.jpy-profit-title{font-size:11px;color:#856404;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:10px}
+.jpy-profit-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.jpy-ch{background:#fff;border:1px solid #fde68a;border-radius:8px;padding:10px;text-align:center}
+.jpy-ch-label{font-size:10px;color:#888;margin-bottom:3px}
+.jpy-ch-value{font-size:16px;font-weight:500}
 </style>
 </head>
 <body>
@@ -193,6 +210,62 @@ tr:hover td{background:#fafaf8}
 
 <!-- Sidebar Overlay -->
 <div class="overlay-bg" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- Edit Product Modal -->
+<div class="edit-modal-overlay" id="edit-modal-overlay">
+  <div class="edit-modal">
+    <div class="edit-modal-header">
+      <span class="edit-modal-title">商品を編集</span>
+      <button class="edit-modal-close" onclick="closeEditModal()"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="edit-modal-body">
+      <input type="hidden" id="edit-id"/>
+      <div class="form-grid">
+        <div class="form-group"><label>商品名</label><input type="text" id="edit-name"/></div>
+        <div class="form-group"><label>カテゴリ</label>
+          <select id="edit-cat"><option>日焼け止め</option><option>フェイスマスク</option><option>スキンケア</option><option>ボディケア</option><option>その他</option></select>
+        </div>
+      </div>
+      <div class="form-grid-3">
+        <div class="form-group"><label>仕入れ価格（円/個）</label><input type="number" id="edit-cost" oninput="calcEditPreview()"/></div>
+        <div class="form-group"><label>仕入れ数量（個）</label><input type="number" id="edit-qty" oninput="calcEditPreview()"/></div>
+        <div class="form-group"><label>在庫アラート数</label><input type="number" id="edit-alert"/></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>国際送料（円・ロット）</label><input type="number" id="edit-ship" oninput="calcEditPreview()"/></div>
+        <div class="form-group"><label>関税・通関費（円・ロット）</label><input type="number" id="edit-duty" oninput="calcEditPreview()"/></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>為替レート（円→ペソ）</label><input type="number" id="edit-fx" step="0.01" oninput="calcEditPreview()"/></div>
+        <div class="form-group"><label>現地販管費（ペソ/個）</label><input type="number" id="edit-misc" oninput="calcEditPreview()"/></div>
+      </div>
+      <hr class="form-divider">
+      <div class="form-section-label">チャネル別 販売価格（ペソ）</div>
+      <div class="form-grid-3">
+        <div class="form-group"><label>実店舗</label><input type="number" id="edit-store" oninput="calcEditPreview()"/></div>
+        <div class="form-group"><label>Shopee/Lazada</label><input type="number" id="edit-ec" oninput="calcEditPreview()"/></div>
+        <div class="form-group"><label>卸売</label><input type="number" id="edit-ws" oninput="calcEditPreview()"/></div>
+      </div>
+      <div id="edit-preview" style="display:none">
+        <div class="result-box" style="margin-bottom:10px">
+          <div class="result-row"><span class="result-label">1個あたり原価（ペソ）</span><span id="ep-peso">—</span></div>
+        </div>
+        <div class="jpy-profit-box">
+          <div class="jpy-profit-title">💴 円ベースの利幅（1個あたり）</div>
+          <div class="jpy-profit-grid">
+            <div class="jpy-ch"><div class="jpy-ch-label">実店舗</div><div class="jpy-ch-value" id="ep-store-jpy">—</div></div>
+            <div class="jpy-ch"><div class="jpy-ch-label">Shopee/Lazada</div><div class="jpy-ch-value" id="ep-ec-jpy">—</div></div>
+            <div class="jpy-ch"><div class="jpy-ch-label">卸売</div><div class="jpy-ch-value" id="ep-ws-jpy">—</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn" onclick="closeEditModal()">キャンセル</button>
+        <button class="btn btn-dark" onclick="saveEditProduct()"><i class="fas fa-floppy-disk"></i> 変更を保存</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- App Layout -->
 <div class="app">
@@ -317,6 +390,14 @@ tr:hover td{background:#fafaf8}
               </div>
               <div class="result-box">
                 <div class="result-row"><span class="result-label">全数売切り想定総利益（実店舗）</span><span id="r-total" class="green">—</span></div>
+              </div>
+              <div class="jpy-profit-box" id="jpy-profit-box" style="display:none">
+                <div class="jpy-profit-title">💴 円ベースの利幅（1個あたり）</div>
+                <div class="jpy-profit-grid">
+                  <div class="jpy-ch"><div class="jpy-ch-label">実店舗</div><div class="jpy-ch-value" id="r-store-jpy">—</div></div>
+                  <div class="jpy-ch"><div class="jpy-ch-label">Shopee/Lazada</div><div class="jpy-ch-value" id="r-ec-jpy">—</div></div>
+                  <div class="jpy-ch"><div class="jpy-ch-label">卸売</div><div class="jpy-ch-value" id="r-ws-jpy">—</div></div>
+                </div>
               </div>
               <div id="sim-msg" class="ai-box" style="margin-top:12px"></div>
             </div>
@@ -738,7 +819,10 @@ function renderProductsTable() {
       '<td>₱' + p.price_ec + '</td>' +
       '<td><span class="badge ' + bc + '">' + m.toFixed(1) + '%</span></td>' +
       '<td style="color:' + (stockLow ? '#e74c3c' : '#27ae60') + ';font-weight:500">' + p.stock + '個</td>' +
-      '<td>' + (isAdmin ? '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\')"><i class="fas fa-trash"></i></button>' : '') + '</td>';
+      '<td style="display:flex;gap:6px">' +
+      (isAdmin ? '<button class="btn btn-sm" onclick="openEditModal(\'' + p.id + '\')"><i class="fas fa-pen"></i></button>' : '') +
+      (isAdmin ? '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\')"><i class="fas fa-trash"></i></button>' : '') +
+      '</td>';
     tbody.appendChild(tr);
   });
 }
@@ -769,7 +853,89 @@ async function addProduct() {
   } catch(e) { showToast(e.message, 'error'); }
 }
 
-async function deleteProduct(id) {
+function openEditModal(id) {
+  var p = products.find(function(x){ return x.id === id; });
+  if (!p) return;
+  document.getElementById('edit-id').value = p.id;
+  document.getElementById('edit-name').value = p.name;
+  document.getElementById('edit-cat').value = p.category;
+  document.getElementById('edit-cost').value = p.cost_jpy;
+  document.getElementById('edit-qty').value = p.qty;
+  document.getElementById('edit-ship').value = p.shipping;
+  document.getElementById('edit-duty').value = p.duty;
+  document.getElementById('edit-fx').value = p.fx_rate;
+  document.getElementById('edit-misc').value = p.misc_cost;
+  document.getElementById('edit-store').value = p.price_store;
+  document.getElementById('edit-ec').value = p.price_ec;
+  document.getElementById('edit-ws').value = p.price_wholesale;
+  document.getElementById('edit-alert').value = p.alert_stock;
+  document.getElementById('edit-modal-overlay').classList.add('show');
+  calcEditPreview();
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal-overlay').classList.remove('show');
+}
+
+function calcEditPreview() {
+  var cost = parseFloat(document.getElementById('edit-cost').value) || 0;
+  var qty = parseFloat(document.getElementById('edit-qty').value) || 1;
+  var ship = parseFloat(document.getElementById('edit-ship').value) || 0;
+  var duty = parseFloat(document.getElementById('edit-duty').value) || 0;
+  var fx = parseFloat(document.getElementById('edit-fx').value) || CFG.fxRate;
+  var misc = parseFloat(document.getElementById('edit-misc').value) || 0;
+  var ps = parseFloat(document.getElementById('edit-store').value) || 0;
+  var pe = parseFloat(document.getElementById('edit-ec').value) || 0;
+  var pw = parseFloat(document.getElementById('edit-ws').value) || 0;
+  if (!cost) { document.getElementById('edit-preview').style.display = 'none'; return; }
+  var unitPeso = (cost + (ship + duty) / qty) * fx + misc;
+  document.getElementById('edit-preview').style.display = 'block';
+  document.getElementById('ep-peso').textContent = '₱' + unitPeso.toFixed(2);
+  function setJPY(elId, price) {
+    var el = document.getElementById(elId);
+    if (!price || fx <= 0) { el.textContent = '—'; el.style.color = '#aaa'; return; }
+    var profitPeso = price - unitPeso;
+    var profitJPY = Math.round(profitPeso / fx);
+    el.textContent = (profitJPY >= 0 ? '+' : '') + '¥' + profitJPY;
+    el.style.color = profitJPY >= 0 ? '#27ae60' : '#e74c3c';
+  }
+  setJPY('ep-store-jpy', ps);
+  setJPY('ep-ec-jpy', pe);
+  setJPY('ep-ws-jpy', pw);
+}
+
+async function saveEditProduct() {
+  var id = document.getElementById('edit-id').value;
+  var name = document.getElementById('edit-name').value.trim();
+  if (!name) { showToast('商品名を入力してください', 'error'); return; }
+  var costJPY = parseFloat(document.getElementById('edit-cost').value) || 0;
+  var qty = parseFloat(document.getElementById('edit-qty').value) || 1;
+  var ship = parseFloat(document.getElementById('edit-ship').value) || 0;
+  var duty = parseFloat(document.getElementById('edit-duty').value) || 0;
+  var fx = parseFloat(document.getElementById('edit-fx').value) || CFG.fxRate;
+  var misc = parseFloat(document.getElementById('edit-misc').value) || 0;
+  var unitCostPeso = (costJPY + (ship + duty) / qty) * fx + misc;
+  var payload = {
+    name: name,
+    category: document.getElementById('edit-cat').value,
+    cost_jpy: costJPY, qty: qty, shipping: ship, duty: duty,
+    fx_rate: fx, misc_cost: misc,
+    price_store: parseFloat(document.getElementById('edit-store').value) || 0,
+    price_ec: parseFloat(document.getElementById('edit-ec').value) || 0,
+    price_wholesale: parseFloat(document.getElementById('edit-ws').value) || 0,
+    alert_stock: parseFloat(document.getElementById('edit-alert').value) || 3,
+    unit_cost_peso: parseFloat(unitCostPeso.toFixed(2))
+  };
+  try {
+    await sbFetch('products', 'PATCH', payload, 'id=eq.' + id);
+    showToast('「' + name + '」を更新しました', 'success');
+    closeEditModal();
+    await loadProducts();
+    renderProductsTable();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+
   if (!confirm('この商品を削除しますか？')) return;
   try {
     await sbFetch('products', 'DELETE', null, 'id=eq.' + id);
@@ -1040,7 +1206,7 @@ function calcSim() {
   document.getElementById('r-peso').textContent = '₱'+unitPeso.toFixed(2);
 
   function setChannel(mId,pId,bId,price) {
-    if (!price) { document.getElementById(mId).textContent='—'; document.getElementById(pId).textContent='価格未入力'; return; }
+    if (!price) { document.getElementById(mId).textContent='—'; document.getElementById(pId).textContent='価格未入力'; return 0; }
     var profit=price-unitPeso, margin=price>0?(profit/price*100):0;
     var el=document.getElementById(mId);
     el.textContent=margin.toFixed(1)+'%';
@@ -1049,12 +1215,31 @@ function calcSim() {
     var bar=document.getElementById(bId);
     bar.style.width=Math.max(0,Math.min(100,margin))+'%';
     bar.style.background=margin>=25?'#27ae60':margin>=10?'#f0a500':'#e74c3c';
+    return profit;
   }
-  setChannel('r-sm','r-sp','r-sb',ps);
-  setChannel('r-em','r-ep','r-eb',pe);
-  setChannel('r-wm','r-wp','r-wb',pw);
+  var profitStore=setChannel('r-sm','r-sp','r-sb',ps);
+  var profitEC=setChannel('r-em','r-ep','r-eb',pe);
+  var profitWS=setChannel('r-wm','r-wp','r-wb',pw);
   var total=(ps-unitPeso)*qty;
   document.getElementById('r-total').textContent=(total>=0?'+':'')+'₱'+total.toFixed(0);
+
+  // 円ベース利幅
+  var jpyBox=document.getElementById('jpy-profit-box');
+  if(fx>0){
+    jpyBox.style.display='block';
+    function jpyVal(profit){
+      var jpy=profit/fx;
+      var el_color=jpy>=0?'#27ae60':'#e74c3c';
+      return {text:(jpy>=0?'+':'')+'¥'+Math.round(jpy),color:el_color};
+    }
+    var sj=jpyVal(ps?profitStore:0),ej=jpyVal(pe?profitEC:0),wj=jpyVal(pw?profitWS:0);
+    var storeEl=document.getElementById('r-store-jpy');
+    storeEl.textContent=ps?sj.text:'—';storeEl.style.color=ps?sj.color:'#aaa';
+    var ecEl=document.getElementById('r-ec-jpy');
+    ecEl.textContent=pe?ej.text:'—';ecEl.style.color=pe?ej.color:'#aaa';
+    var wsEl=document.getElementById('r-ws-jpy');
+    wsEl.textContent=pw?wj.text:'—';wsEl.style.color=pw?wj.color:'#aaa';
+  } else { jpyBox.style.display='none'; }
   var m=ps>0?((ps-unitPeso)/ps*100):null;
   var msg='';
   if(m===null) msg='実店舗の販売価格を入力すると判定が表示されます。';
