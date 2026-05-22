@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhilSales — 物販会計管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;font-size:14px;background:#f5f4f0;color:#1a1a1a}
+
+/* ===== CONFIG BANNER ===== */
+#config-banner{background:#1a1a1a;color:#f5f4f0;padding:10px 20px;font-size:12px;display:flex;align-items:center;gap:10px;font-family:'DM Mono',monospace}
+#config-banner a{color:#a8e6cf;text-decoration:none}
+#config-banner.hidden{display:none}
+
+/* ===== LAYOUT ===== */
+.app{display:flex;min-height:calc(100vh - 0px)}
+.sidebar{width:220px;background:#1a1a1a;color:#f5f4f0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s}
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid #e8e6e0;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.content{padding:24px;flex:1}
+
+/* ===== SIDEBAR ===== */
+.sidebar-header{padding:20px 18px 16px;border-bottom:1px solid #2d2d2d}
+.sidebar-logo{font-size:18px;font-weight:600;letter-spacing:-0.5px;color:#f5f4f0}
+.sidebar-logo span{color:#a8e6cf}
+.sidebar-store{font-size:11px;color:#888;margin-top:2px;font-family:'DM Mono',monospace}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;padding:12px 8px 6px;font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#aaa;font-size:13px;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:#2d2d2d;color:#f5f4f0}
+.nav-item.active{background:#2d2d2d;color:#f5f4f0}
+.nav-item i{width:16px;text-align:center;font-size:14px}
+.nav-item .badge{margin-left:auto;background:#e74c3c;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px}
+.sidebar-footer{padding:14px 10px;border-top:1px solid #2d2d2d}
+.admin-badge{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#2d2d2d;font-size:12px;cursor:pointer;color:#aaa;border:none;width:100%;text-align:left}
+.admin-badge.is-admin{color:#a8e6cf}
+.admin-badge i{font-size:13px}
+
+/* ===== TOPBAR ===== */
+.topbar-title{font-size:15px;font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.fx-display{font-family:'DM Mono',monospace;font-size:12px;color:#888;background:#f5f4f0;padding:5px 10px;border-radius:6px}
+.sync-status{font-size:11px;color:#888;display:flex;align-items:center;gap:5px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#a8e6cf}
+.sync-dot.err{background:#e74c3c}
+.sync-dot.loading{background:#f0a500;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ===== CARDS & METRICS ===== */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
+.metric-card{background:#fff;border-radius:12px;padding:16px;border:1px solid #e8e6e0}
+.metric-label{font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.metric-value{font-size:24px;font-weight:500;letter-spacing:-0.5px}
+.metric-value.green{color:#27ae60}
+.metric-value.red{color:#e74c3c}
+.metric-value.amber{color:#f0a500}
+.card{background:#fff;border-radius:12px;border:1px solid #e8e6e0;margin-bottom:16px}
+.card-header{padding:16px 20px;border-bottom:1px solid #f0ede8;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:500}
+.card-body{padding:20px}
+
+/* ===== FORMS ===== */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{padding:9px 12px;border:1px solid #e8e6e0;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a1a;transition:border-color .15s;outline:none}
+.form-group input:focus,.form-group select:focus{border-color:#1a1a1a}
+.form-divider{border:none;border-top:1px solid #f0ede8;margin:16px 0}
+.form-section-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-weight:500}
+
+/* ===== BUTTONS ===== */
+.btn{padding:9px 16px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:1px solid #e8e6e0;background:#fff;color:#1a1a1a;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:#f5f4f0}
+.btn-dark{background:#1a1a1a;color:#f5f4f0;border-color:#1a1a1a}
+.btn-dark:hover{background:#2d2d2d}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-danger{color:#e74c3c;border-color:#fce4e4}
+.btn-danger:hover{background:#fce4e4}
+.btn-success{color:#27ae60;border-color:#d5f0e0}
+.btn-success:hover{background:#d5f0e0}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+
+/* ===== TABLE ===== */
+.table-wrap{overflow-x:auto;border-radius:0 0 12px 12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;color:#888;font-weight:500;border-bottom:1px solid #f0ede8;white-space:nowrap;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:11px 14px;border-bottom:1px solid #f8f6f2;color:#1a1a1a;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+
+/* ===== BADGES ===== */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;gap:4px}
+.badge-green{background:#d5f0e0;color:#1a7a42}
+.badge-red{background:#fce4e4;color:#c0392b}
+.badge-amber{background:#fef3cd;color:#856404}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-purple{background:#ede9fe;color:#5b21b6}
+.badge-gray{background:#f0ede8;color:#555}
+
+/* ===== ALERT ===== */
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+.alert-warning{background:#fef3cd;border:1px solid #fde68a;color:#856404}
+.alert-danger{background:#fce4e4;border:1px solid #fca5a5;color:#c0392b}
+.alert-success{background:#d5f0e0;border:1px solid #a7f3d0;color:#1a7a42}
+.alert-info{background:#dbeafe;border:1px solid #bfdbfe;color:#1e40af}
+
+/* ===== RESULT BOX ===== */
+.result-box{background:#f5f4f0;border-radius:10px;padding:16px}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e8e6e0;font-size:13px}
+.result-row:last-child{border-bottom:none;font-weight:600;font-size:14px;padding-top:10px}
+.result-label{color:#666}
+.channel-results{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
+.ch-card{background:#fff;border:1px solid #e8e6e0;border-radius:10px;padding:12px;text-align:center}
+.ch-card-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.ch-card-margin{font-size:20px;font-weight:500}
+.ch-card-profit{font-size:11px;color:#888;margin-top:2px}
+.bar-wrap{margin-top:4px}
+.bar-bg{background:#e8e6e0;border-radius:4px;height:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s}
+
+/* ===== AI BOX ===== */
+.ai-box{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;font-size:13px;color:#1e3a5f;line-height:1.7;margin-top:14px}
+.ai-box-title{font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.5px}
+
+/* ===== EMPTY STATE ===== */
+.empty{text-align:center;padding:40px 20px;color:#aaa}
+.empty i{font-size:32px;margin-bottom:12px;display:block;opacity:.4}
+.empty p{font-size:13px}
+
+/* ===== LOGIN MODAL ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:16px;padding:32px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:6px}
+.modal p{font-size:13px;color:#888;margin-bottom:20px}
+.modal.hidden{display:none}
+
+/* ===== TOAST ===== */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#f5f4f0;padding:12px 18px;border-radius:10px;font-size:13px;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:280px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{background:#1a7a42}
+#toast.error{background:#c0392b}
+
+/* ===== PAGE SECTIONS ===== */
+.page{display:none}.page.active{display:block}
+.page-title{font-size:20px;font-weight:600;margin-bottom:20px;letter-spacing:-0.3px}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-220px)}.sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .form-grid,.form-grid-3{grid-template-columns:1fr}
+  .channel-results{grid-template-columns:1fr}
+  .metrics{grid-template-columns:1fr 1fr}
+  .content{padding:16px}
+}
+.hamburger{display:none;background:none;border:none;cursor:pointer;font-size:18px;color:#1a1a1a}
+@media(max-width:768px){.hamburger{display:block}}
+.overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+.overlay-bg.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- Config Banner -->
+<div id="config-banner">
+  <i class="fas fa-triangle-exclamation"></i>
+  <span>⚠️ Supabase の設定が必要です。</span>
+  <a href="#" onclick="showConfigHelp()">設定方法を見る</a>
+  <span style="margin-left:auto;cursor:pointer;opacity:.6" onclick="document.getElementById('config-banner').classList.add('hidden')">✕ 閉じる</span>
+</div>
+
+<!-- Admin Login Modal -->
+<div class="modal-overlay" id="admin-modal" style="display:none">
+  <div class="modal">
+    <h2>管理者ログイン</h2>
+    <p>商品の登録・削除には管理者パスワードが必要です</p>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>パスワード</label>
+      <input type="password" id="admin-pw-input" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')submitAdminLogin()"/>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeAdminModal()">キャンセル</button>
+      <button class="btn btn-dark" onclick="submitAdminLogin()">ログイン</button>
+    </div>
+    <div id="admin-login-err" style="color:#e74c3c;font-size:12px;margin-top:10px;display:none">パスワードが違います</div>
+  </div>
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="overlay-bg" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- App Layout -->
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">Phil<span>Sales</span></div>
+      <div class="sidebar-store" id="sidebar-store-name">読み込み中...</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">メイン</div>
+      <button class="nav-item active" onclick="goTo('dashboard')"><i class="fas fa-chart-line"></i> ダッシュボード</button>
+      <button class="nav-item" onclick="goTo('calc')"><i class="fas fa-calculator"></i> 収支計算</button>
+      <div class="nav-section">管理</div>
+      <button class="nav-item" onclick="goTo('products')"><i class="fas fa-box"></i> 商品管理</button>
+      <button class="nav-item" onclick="goTo('sales')"><i class="fas fa-shopping-cart"></i> 売上入力</button>
+      <button class="nav-item" onclick="goTo('inventory')"><i class="fas fa-warehouse"></i> 在庫管理 <span class="badge" id="alert-badge" style="display:none">!</span></button>
+      <div class="nav-section">レポート</div>
+      <button class="nav-item" onclick="goTo('report')"><i class="fas fa-chart-bar"></i> 損益レポート</button>
+      <button class="nav-item" onclick="goTo('ai')"><i class="fas fa-robot"></i> AI分析</button>
+      <div class="nav-section">設定</div>
+      <button class="nav-item" onclick="goTo('settings')"><i class="fas fa-gear"></i> 設定</button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="admin-badge" id="admin-btn" onclick="toggleAdmin()">
+        <i class="fas fa-lock"></i>
+        <span id="admin-label">スタッフモード</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+        <span class="topbar-title" id="page-title">ダッシュボード</span>
+      </div>
+      <div class="topbar-right">
+        <div class="fx-display">¥1 = ₱<span id="fx-display">3.80</span></div>
+        <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">接続中</span></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===== DASHBOARD ===== -->
+      <div class="page active" id="page-dashboard">
+        <div class="metrics">
+          <div class="metric-card"><div class="metric-label">今月の売上</div><div class="metric-value" id="d-rev">₱—</div></div>
+          <div class="metric-card"><div class="metric-label">今月の利益</div><div class="metric-value green" id="d-profit">₱—</div></div>
+          <div class="metric-card"><div class="metric-label">平均利益率</div><div class="metric-value green" id="d-margin">—</div></div>
+          <div class="metric-card"><div class="metric-label">売上件数</div><div class="metric-value" id="d-count">—</div></div>
+          <div class="metric-card"><div class="metric-label">登録商品数</div><div class="metric-value" id="d-products">—</div></div>
+          <div class="metric-card"><div class="metric-label">在庫アラート</div><div class="metric-value red" id="d-alerts">—</div></div>
+        </div>
+        <div id="dash-alerts"></div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">最近の売上（直近10件）</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>日付</th><th>商品</th><th>チャネル</th><th>数量</th><th>売上</th><th>利益</th></tr></thead>
+              <tbody id="dash-sales-tbody"></tbody>
+            </table>
+            <div class="empty" id="dash-sales-empty"><i class="fas fa-receipt"></i><p>まだ売上がありません</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CALC ===== -->
+      <div class="page" id="page-calc">
+        <div class="card">
+          <div class="card-header"><span class="card-title">収支シミュレーション</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>商品名</label><input type="text" id="c-name" placeholder="例: ALLIE ジェルUV EX 90g"/></div>
+              <div class="form-group"><label>カテゴリ</label>
+                <select id="c-cat"><option>日焼け止め</option><option>フェイスマスク</option><option>スキンケア</option><option>ボディケア</option><option>その他</option></select>
+              </div>
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group"><label>仕入れ価格（円/個）</label><input type="number" id="c-cost" placeholder="1200" oninput="calcSim()"/></div>
+              <div class="form-group"><label>仕入れ数量（個）</label><input type="number" id="c-qty" placeholder="10" oninput="calcSim()"/></div>
+              <div class="form-group"><label>在庫アラート数</label><input type="number" id="c-alert" placeholder="3"/></div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group"><label>国際送料（円・ロット総額）</label><input type="number" id="c-ship" placeholder="3000" oninput="calcSim()"/></div>
+              <div class="form-group"><label>関税・通関費（円・ロット総額）</label><input type="number" id="c-duty" placeholder="500" oninput="calcSim()"/></div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group"><label>為替レート（円→ペソ）</label><input type="number" id="c-fx" placeholder="3.8" step="0.01" oninput="calcSim()"/></div>
+              <div class="form-group"><label>現地販管費（ペソ/個）</label><input type="number" id="c-misc" placeholder="30" oninput="calcSim()"/></div>
+            </div>
+            <hr class="form-divider">
+            <div class="form-section-label">チャネル別 販売価格（ペソ）</div>
+            <div class="form-grid-3">
+              <div class="form-group"><label><i class="fas fa-store" style="font-size:10px"></i> 実店舗</label><input type="number" id="c-p-store" placeholder="650" oninput="calcSim()"/></div>
+              <div class="form-group"><label><i class="fas fa-globe" style="font-size:10px"></i> Shopee/Lazada</label><input type="number" id="c-p-ec" placeholder="620" oninput="calcSim()"/></div>
+              <div class="form-group"><label><i class="fas fa-building" style="font-size:10px"></i> 卸売</label><input type="number" id="c-p-ws" placeholder="500" oninput="calcSim()"/></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn" onclick="resetCalc()"><i class="fas fa-rotate"></i> リセット</button>
+              <button class="btn btn-dark" onclick="saveFromCalc()"><i class="fas fa-floppy-disk"></i> 商品として保存</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="sim-result" style="display:none">
+          <div class="card">
+            <div class="card-header"><span class="card-title">シミュレーション結果</span></div>
+            <div class="card-body">
+              <div class="result-box" style="margin-bottom:14px">
+                <div class="result-row"><span class="result-label">仕入れ原価（1個・円）</span><span id="r-jpy">—</span></div>
+                <div class="result-row"><span class="result-label">1個あたり原価（ペソ）</span><span id="r-peso">—</span></div>
+              </div>
+              <div class="form-section-label">チャネル別 利益率</div>
+              <div class="channel-results">
+                <div class="ch-card"><div class="ch-card-label">実店舗</div><div class="ch-card-margin" id="r-sm">—</div><div class="ch-card-profit" id="r-sp">—</div><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" id="r-sb" style="width:0%"></div></div></div></div>
+                <div class="ch-card"><div class="ch-card-label">Shopee/Lazada</div><div class="ch-card-margin" id="r-em">—</div><div class="ch-card-profit" id="r-ep">—</div><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" id="r-eb" style="width:0%"></div></div></div></div>
+                <div class="ch-card"><div class="ch-card-label">卸売</div><div class="ch-card-margin" id="r-wm">—</div><div class="ch-card-profit" id="r-wp">—</div><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" id="r-wb" style="width:0%"></div></div></div></div>
+              </div>
+              <div class="result-box">
+                <div class="result-row"><span class="result-label">全数売切り想定総利益（実店舗）</span><span id="r-total" class="green">—</span></div>
+              </div>
+              <div id="sim-msg" class="ai-box" style="margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PRODUCTS ===== -->
+      <div class="page" id="page-products">
+        <div id="products-admin-gate">
+          <div class="alert alert-info"><i class="fas fa-info-circle"></i> 商品の登録・削除は管理者のみ可能です。サイドバー下の「管理者ログイン」でログインしてください。</div>
+        </div>
+        <div id="products-form" style="display:none">
+          <div class="card">
+            <div class="card-header"><span class="card-title">新規商品を登録</span></div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group"><label>商品名</label><input type="text" id="p-name" placeholder="例: ALLIE ジェルUV EX 90g"/></div>
+                <div class="form-group"><label>カテゴリ</label>
+                  <select id="p-cat"><option>日焼け止め</option><option>フェイスマスク</option><option>スキンケア</option><option>ボディケア</option><option>その他</option></select>
+                </div>
+              </div>
+              <div class="form-grid-3">
+                <div class="form-group"><label>仕入れ価格（円/個）</label><input type="number" id="p-cost" placeholder="1200"/></div>
+                <div class="form-group"><label>仕入れ数量（個）</label><input type="number" id="p-qty" placeholder="10"/></div>
+                <div class="form-group"><label>在庫アラート数</label><input type="number" id="p-alert" placeholder="3"/></div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group"><label>国際送料（円・ロット）</label><input type="number" id="p-ship" placeholder="3000"/></div>
+                <div class="form-group"><label>関税・通関費（円・ロット）</label><input type="number" id="p-duty" placeholder="500"/></div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group"><label>為替レート（円→ペソ）</label><input type="number" id="p-fx" placeholder="3.8" step="0.01"/></div>
+                <div class="form-group"><label>現地販管費（ペソ/個）</label><input type="number" id="p-misc" placeholder="30"/></div>
+              </div>
+              <hr class="form-divider">
+              <div class="form-section-label">チャネル別 販売価格（ペソ）</div>
+              <div class="form-grid-3">
+                <div class="form-group"><label>実店舗</label><input type="number" id="p-store" placeholder="650"/></div>
+                <div class="form-group"><label>Shopee/Lazada</label><input type="number" id="p-ec" placeholder="620"/></div>
+                <div class="form-group"><label>卸売</label><input type="number" id="p-ws" placeholder="500"/></div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-dark" onclick="addProduct()"><i class="fas fa-plus"></i> 登録する</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">登録商品一覧</span>
+            <button class="btn btn-sm" onclick="loadProducts()"><i class="fas fa-rotate"></i> 更新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>商品名</th><th>カテゴリ</th><th>原価(₱)</th><th>店舗価格</th><th>EC価格</th><th>利益率</th><th>在庫</th><th></th></tr></thead>
+              <tbody id="prod-tbody"></tbody>
+            </table>
+            <div class="empty" id="prod-empty"><i class="fas fa-box-open"></i><p>まだ商品が登録されていません</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SALES ===== -->
+      <div class="page" id="page-sales">
+        <div class="card">
+          <div class="card-header"><span class="card-title">売上を記録する</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>商品</label><select id="s-prod"><option value="">— 商品を選択 —</option></select></div>
+              <div class="form-group"><label>販売チャネル</label>
+                <select id="s-ch">
+                  <option value="store">実店舗（マッサージ店）</option>
+                  <option value="shopee">Shopee</option>
+                  <option value="lazada">Lazada</option>
+                  <option value="ec">その他EC</option>
+                  <option value="wholesale">卸売・法人</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group"><label>販売数量</label><input type="number" id="s-qty" placeholder="1" min="1" value="1"/></div>
+              <div class="form-group"><label>実際の販売価格（₱）</label><input type="number" id="s-price" placeholder="650"/></div>
+              <div class="form-group"><label>販売日</label><input type="date" id="s-date"/></div>
+            </div>
+            <div class="form-group" style="margin-bottom:4px"><label>メモ</label><input type="text" id="s-memo" placeholder="例: ホテルロビー 日本人観光客"/></div>
+            <div class="form-actions">
+              <button class="btn btn-dark" onclick="addSale()"><i class="fas fa-check"></i> 記録する</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">売上履歴</span>
+            <button class="btn btn-sm" onclick="loadSales()"><i class="fas fa-rotate"></i> 更新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>日付</th><th>商品名</th><th>チャネル</th><th>数量</th><th>単価(₱)</th><th>売上(₱)</th><th>利益(₱)</th><th>メモ</th><th></th></tr></thead>
+              <tbody id="sale-tbody"></tbody>
+            </table>
+            <div class="empty" id="sale-empty"><i class="fas fa-receipt"></i><p>まだ売上記録がありません</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== INVENTORY ===== -->
+      <div class="page" id="page-inventory">
+        <div id="inv-alerts"></div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">在庫一覧</span>
+            <button class="btn btn-sm" onclick="loadProducts()"><i class="fas fa-rotate"></i> 更新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>商品名</th><th>カテゴリ</th><th>現在庫</th><th>アラート</th><th>状態</th><th>在庫数を変更</th></tr></thead>
+              <tbody id="inv-tbody"></tbody>
+            </table>
+            <div class="empty" id="inv-empty"><i class="fas fa-warehouse"></i><p>商品を登録すると在庫が表示されます</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== REPORT ===== -->
+      <div class="page" id="page-report">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <button class="btn btn-dark btn-sm" onclick="switchReport('summary',this)">サマリー</button>
+          <button class="btn btn-sm" onclick="switchReport('channel',this)">チャネル別</button>
+          <button class="btn btn-sm" onclick="switchReport('product',this)">商品別</button>
+        </div>
+
+        <div id="rpt-summary">
+          <div class="metrics">
+            <div class="metric-card"><div class="metric-label">総売上</div><div class="metric-value" id="rpt-rev">₱—</div></div>
+            <div class="metric-card"><div class="metric-label">総原価</div><div class="metric-value" id="rpt-cost">₱—</div></div>
+            <div class="metric-card"><div class="metric-label">総利益</div><div class="metric-value green" id="rpt-profit">₱—</div></div>
+            <div class="metric-card"><div class="metric-label">平均利益率</div><div class="metric-value green" id="rpt-margin">—</div></div>
+            <div class="metric-card"><div class="metric-label">売上件数</div><div class="metric-value" id="rpt-count">0</div></div>
+            <div class="metric-card"><div class="metric-label">商品数</div><div class="metric-value" id="rpt-prods">0</div></div>
+          </div>
+        </div>
+
+        <div id="rpt-channel" style="display:none">
+          <div class="card">
+            <div class="card-header"><span class="card-title">チャネル別 売上・利益</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>チャネル</th><th>件数</th><th>売上合計(₱)</th><th>利益合計(₱)</th><th>利益率</th></tr></thead>
+                <tbody id="ch-tbody"></tbody>
+              </table>
+              <div class="empty" id="ch-empty"><i class="fas fa-chart-bar"></i><p>売上データがありません</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="rpt-product" style="display:none">
+          <div class="card">
+            <div class="card-header"><span class="card-title">商品別 売上・利益</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>商品名</th><th>販売数</th><th>売上合計(₱)</th><th>利益合計(₱)</th><th>利益率</th><th>判定</th></tr></thead>
+                <tbody id="pd-tbody"></tbody>
+              </table>
+              <div class="empty" id="pd-empty"><i class="fas fa-box"></i><p>売上データがありません</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AI ===== -->
+      <div class="page" id="page-ai">
+        <div class="card">
+          <div class="card-header"><span class="card-title">AI利益分析・アドバイス</span></div>
+          <div class="card-body">
+            <div class="form-group" style="margin-bottom:12px">
+              <label>分析テーマ</label>
+              <select id="ai-topic">
+                <option value="overall">全体の収益性を分析してほしい</option>
+                <option value="channel">チャネル別の最適戦略</option>
+                <option value="pricing">価格設定の改善提案</option>
+                <option value="product">仕入れ商品の見直し提案</option>
+                <option value="risk">為替・関税リスク対策</option>
+                <option value="custom">その他（自由入力）</option>
+              </select>
+            </div>
+            <div class="form-group" id="ai-custom-wrap" style="display:none;margin-bottom:12px">
+              <label>質問内容</label>
+              <input type="text" id="ai-custom" placeholder="例: 卸売チャネルの比率を増やすべきか？"/>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn btn-dark" onclick="askAI()"><i class="fas fa-robot"></i> AI分析を実行</button>
+              <span id="ai-loading" style="display:none;font-size:12px;color:#888">AIが分析中...</span>
+            </div>
+          </div>
+        </div>
+        <div id="ai-result" class="ai-box" style="display:none">
+          <div class="ai-box-title"><i class="fas fa-robot"></i> AI分析レポート</div>
+          <div id="ai-text" style="white-space:pre-wrap;line-height:1.8;font-size:13px"></div>
+        </div>
+      </div>
+
+      <!-- ===== SETTINGS ===== -->
+      <div class="page" id="page-settings">
+        <div class="card">
+          <div class="card-header"><span class="card-title">基本設定</span></div>
+          <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom:16px"><i class="fas fa-info-circle"></i> 設定の変更には管理者ログインが必要です。</div>
+            <div class="form-grid">
+              <div class="form-group"><label>店舗名</label><input type="text" id="cfg-store" placeholder="PhilSales"/></div>
+              <div class="form-group"><label>デフォルト為替レート（円→ペソ）</label><input type="number" id="cfg-fx" placeholder="3.8" step="0.01"/></div>
+            </div>
+            <hr class="form-divider">
+            <div class="form-section-label">Supabase 接続設定</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Supabase URL</label><input type="text" id="cfg-url" placeholder="https://xxxxxx.supabase.co"/></div>
+              <div class="form-group"><label>Supabase Anon Key</label><input type="text" id="cfg-key" placeholder="eyJhbG..."/></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-dark" onclick="saveSettings()"><i class="fas fa-floppy-disk"></i> 保存する</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">管理者パスワード変更</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>新しいパスワード</label><input type="password" id="cfg-newpw" placeholder="新しいパスワード"/></div>
+              <div class="form-group"><label>確認</label><input type="password" id="cfg-newpw2" placeholder="もう一度入力"/></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-dark" onclick="changePassword()"><i class="fas fa-key"></i> 変更する</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// 設定（ここにSupabaseのURLとキーを貼り付けてください）
+// ============================================================
+var CFG = {
+  supabaseUrl: localStorage.getItem('sb_url') || '',
+  supabaseKey: localStorage.getItem('sb_key') || '',
+  adminPassword: localStorage.getItem('admin_pw') || 'admin1234',
+  storeName: localStorage.getItem('store_name') || 'PhilSales',
+  fxRate: parseFloat(localStorage.getItem('fx_rate')) || 3.8
+};
+
+var isAdmin = false;
+var products = [];
+var sales = [];
+var chLabels = {store:'実店舗',shopee:'Shopee',lazada:'Lazada',ec:'その他EC',wholesale:'卸売・法人'};
+
+// ============================================================
+// Supabase API
+// ============================================================
+async function sbFetch(table, method, body, filters) {
+  if (!CFG.supabaseUrl || !CFG.supabaseKey) {
+    throw new Error('Supabaseが未設定です。設定ページでURLとキーを入力してください。');
+  }
+  var url = CFG.supabaseUrl + '/rest/v1/' + table;
+  if (filters) url += '?' + filters;
+  var opts = {
+    method: method || 'GET',
+    headers: {
+      'apikey': CFG.supabaseKey,
+      'Authorization': 'Bearer ' + CFG.supabaseKey,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : ''
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  var res = await fetch(url, opts);
+  if (!res.ok) {
+    var err = await res.text();
+    throw new Error('DB エラー: ' + err);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ============================================================
+// 初期化
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  var today = new Date().toISOString().slice(0,10);
+  document.getElementById('s-date').value = today;
+  document.getElementById('cfg-url').value = CFG.supabaseUrl;
+  document.getElementById('cfg-key').value = CFG.supabaseKey;
+  document.getElementById('cfg-store').value = CFG.storeName;
+  document.getElementById('cfg-fx').value = CFG.fxRate;
+  document.getElementById('c-fx').value = CFG.fxRate;
+  document.getElementById('sidebar-store-name').textContent = CFG.storeName;
+  document.getElementById('fx-display').textContent = CFG.fxRate.toFixed(2);
+
+  document.getElementById('ai-topic').addEventListener('change', function() {
+    document.getElementById('ai-custom-wrap').style.display = this.value === 'custom' ? 'block' : 'none';
+  });
+
+  if (CFG.supabaseUrl && CFG.supabaseKey) {
+    document.getElementById('config-banner').classList.add('hidden');
+    setSyncStatus('ok');
+    loadAll();
+  } else {
+    setSyncStatus('err');
+  }
+});
+
+async function loadAll() {
+  await loadProducts();
+  await loadSales();
+  renderDashboard();
+}
+
+// ============================================================
+// ナビゲーション
+// ============================================================
+var pageTitles = {dashboard:'ダッシュボード',calc:'収支計算',products:'商品管理',sales:'売上入力',inventory:'在庫管理',report:'損益レポート',ai:'AI分析',settings:'設定'};
+
+function goTo(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().includes(pageTitles[id])) n.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = pageTitles[id] || id;
+  closeSidebar();
+
+  if (id === 'products') { renderProductsPage(); }
+  if (id === 'sales') { updateSaleSelect(); renderSalesTable(); }
+  if (id === 'inventory') { renderInventory(); }
+  if (id === 'report') { renderReport(); }
+  if (id === 'dashboard') { renderDashboard(); }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ============================================================
+// 管理者認証
+// ============================================================
+function toggleAdmin() {
+  if (isAdmin) { isAdmin = false; updateAdminUI(); showToast('ログアウトしました', 'success'); return; }
+  document.getElementById('admin-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('admin-pw-input').focus(), 100);
+}
+function closeAdminModal() {
+  document.getElementById('admin-modal').style.display = 'none';
+  document.getElementById('admin-pw-input').value = '';
+  document.getElementById('admin-login-err').style.display = 'none';
+}
+function submitAdminLogin() {
+  var pw = document.getElementById('admin-pw-input').value;
+  if (pw === CFG.adminPassword) {
+    isAdmin = true; updateAdminUI(); closeAdminModal();
+    showToast('管理者としてログインしました', 'success');
+    renderProductsPage();
+  } else {
+    document.getElementById('admin-login-err').style.display = 'block';
+  }
+}
+function updateAdminUI() {
+  var btn = document.getElementById('admin-btn');
+  var lbl = document.getElementById('admin-label');
+  btn.classList.toggle('is-admin', isAdmin);
+  btn.querySelector('i').className = isAdmin ? 'fas fa-unlock' : 'fas fa-lock';
+  lbl.textContent = isAdmin ? '管理者モード' : 'スタッフモード';
+}
+
+// ============================================================
+// 商品
+// ============================================================
+async function loadProducts() {
+  try {
+    setSyncStatus('loading');
+    var data = await sbFetch('products', 'GET', null, 'order=created_at.asc');
+    products = data || [];
+    updateAlertBadge();
+    setSyncStatus('ok');
+  } catch(e) { setSyncStatus('err'); showToast(e.message, 'error'); }
+}
+
+function renderProductsPage() {
+  var gate = document.getElementById('products-admin-gate');
+  var form = document.getElementById('products-form');
+  gate.style.display = isAdmin ? 'none' : 'block';
+  form.style.display = isAdmin ? 'block' : 'none';
+  renderProductsTable();
+}
+
+function renderProductsTable() {
+  var tbody = document.getElementById('prod-tbody');
+  var empty = document.getElementById('prod-empty');
+  tbody.innerHTML = '';
+  empty.style.display = products.length ? 'none' : 'block';
+  products.forEach(function(p) {
+    var m = p.price_store > 0 ? ((p.price_store - p.unit_cost_peso) / p.price_store * 100) : 0;
+    var bc = m >= 25 ? 'badge-green' : m >= 10 ? 'badge-amber' : 'badge-red';
+    var stockLow = p.stock <= p.alert_stock;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><strong>' + esc(p.name) + '</strong></td>' +
+      '<td><span class="badge badge-gray">' + esc(p.category) + '</span></td>' +
+      '<td>₱' + parseFloat(p.unit_cost_peso).toFixed(1) + '</td>' +
+      '<td>₱' + p.price_store + '</td>' +
+      '<td>₱' + p.price_ec + '</td>' +
+      '<td><span class="badge ' + bc + '">' + m.toFixed(1) + '%</span></td>' +
+      '<td style="color:' + (stockLow ? '#e74c3c' : '#27ae60') + ';font-weight:500">' + p.stock + '個</td>' +
+      '<td>' + (isAdmin ? '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\')"><i class="fas fa-trash"></i></button>' : '') + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function addProduct() {
+  var name = v('p-name').value.trim();
+  if (!name) { showToast('商品名を入力してください', 'error'); return; }
+  var costJPY = pf('p-cost'), qty = pf('p-qty') || 1;
+  var shipping = pf('p-ship'), duty = pf('p-duty');
+  var fxRate = pf('p-fx') || CFG.fxRate, misc = pf('p-misc');
+  var unitCostPeso = (costJPY + (shipping + duty) / qty) * fxRate + misc;
+  var payload = {
+    id: 'P' + Date.now(),
+    name: name, category: v('p-cat').value,
+    cost_jpy: costJPY, qty: qty, shipping: shipping, duty: duty,
+    fx_rate: fxRate, misc_cost: misc,
+    price_store: pf('p-store'), price_ec: pf('p-ec'), price_wholesale: pf('p-ws'),
+    alert_stock: pf('p-alert') || 3,
+    unit_cost_peso: parseFloat(unitCostPeso.toFixed(2)),
+    stock: qty
+  };
+  try {
+    await sbFetch('products', 'POST', payload);
+    showToast('「' + name + '」を登録しました', 'success');
+    ['p-name','p-cost','p-qty','p-ship','p-duty','p-misc','p-store','p-ec','p-ws'].forEach(function(id){ document.getElementById(id).value=''; });
+    await loadProducts();
+    renderProductsTable();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('この商品を削除しますか？')) return;
+  try {
+    await sbFetch('products', 'DELETE', null, 'id=eq.' + id);
+    showToast('削除しました', 'success');
+    await loadProducts();
+    renderProductsTable();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ============================================================
+// 売上
+// ============================================================
+async function loadSales() {
+  try {
+    var data = await sbFetch('sales', 'GET', null, 'order=sale_date.desc,created_at.desc');
+    sales = data || [];
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function updateSaleSelect() {
+  var sel = document.getElementById('s-prod');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">— 商品を選択 —</option>';
+  products.forEach(function(p) {
+    sel.innerHTML += '<option value="' + p.id + '" data-cost="' + p.unit_cost_peso + '" data-store="' + p.price_store + '">' + esc(p.name) + '</option>';
+  });
+  sel.value = cur;
+}
+
+document.addEventListener('change', function(e) {
+  if (e.target.id === 's-prod') {
+    var opt = e.target.options[e.target.selectedIndex];
+    if (opt.dataset.store) document.getElementById('s-price').value = opt.dataset.store;
+  }
+});
+
+async function addSale() {
+  var prodId = document.getElementById('s-prod').value;
+  var prod = products.find(function(p){ return p.id === prodId; });
+  if (!prod) { showToast('商品を選択してください', 'error'); return; }
+  var qty = parseInt(document.getElementById('s-qty').value) || 1;
+  var price = parseFloat(document.getElementById('s-price').value) || prod.price_store;
+  var ch = document.getElementById('s-ch').value;
+  var date = document.getElementById('s-date').value;
+  var memo = document.getElementById('s-memo').value;
+  if (prod.stock < qty) { showToast('在庫不足です（現在庫: ' + prod.stock + '個）', 'error'); return; }
+  var profit = (price - prod.unit_cost_peso) * qty;
+  try {
+    await sbFetch('sales', 'POST', {
+      id: 'S' + Date.now(),
+      product_id: prodId, product_name: prod.name,
+      channel: ch, qty: qty, price: price,
+      unit_cost: prod.unit_cost_peso,
+      profit: parseFloat(profit.toFixed(2)),
+      sale_date: date, memo: memo
+    });
+    await sbFetch('products', 'PATCH', { stock: prod.stock - qty }, 'id=eq.' + prodId);
+    showToast('売上を記録しました', 'success');
+    document.getElementById('s-qty').value = '1';
+    document.getElementById('s-price').value = '';
+    document.getElementById('s-memo').value = '';
+    await loadProducts();
+    await loadSales();
+    renderSalesTable();
+    updateAlertBadge();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteSale(id) {
+  var sale = sales.find(function(s){ return s.id === id; });
+  if (!sale || !confirm('この売上記録を削除しますか？（在庫が戻ります）')) return;
+  try {
+    await sbFetch('sales', 'DELETE', null, 'id=eq.' + id);
+    var prod = products.find(function(p){ return p.id === sale.product_id; });
+    if (prod) await sbFetch('products', 'PATCH', { stock: prod.stock + sale.qty }, 'id=eq.' + prod.id);
+    showToast('削除しました', 'success');
+    await loadProducts();
+    await loadSales();
+    renderSalesTable();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function renderSalesTable() {
+  var tbody = document.getElementById('sale-tbody');
+  var empty = document.getElementById('sale-empty');
+  tbody.innerHTML = '';
+  empty.style.display = sales.length ? 'none' : 'block';
+  sales.slice(0, 50).forEach(function(s) {
+    var rev = parseFloat(s.price) * parseFloat(s.qty);
+    var profit = parseFloat(s.profit);
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="font-family:DM Mono,monospace;font-size:12px">' + s.sale_date + '</td>' +
+      '<td>' + esc(s.product_name) + '</td>' +
+      '<td><span class="badge badge-blue">' + (chLabels[s.channel] || s.channel) + '</span></td>' +
+      '<td>' + s.qty + '</td>' +
+      '<td>₱' + parseFloat(s.price).toFixed(0) + '</td>' +
+      '<td>₱' + rev.toFixed(0) + '</td>' +
+      '<td style="color:' + (profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:500">' + (profit >= 0 ? '+' : '') + '₱' + profit.toFixed(0) + '</td>' +
+      '<td style="color:#aaa;font-size:12px">' + esc(s.memo || '—') + '</td>' +
+      '<td><button class="btn btn-sm btn-danger" onclick="deleteSale(\'' + s.id + '\')"><i class="fas fa-trash"></i></button></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// 在庫
+// ============================================================
+function renderInventory() {
+  var tbody = document.getElementById('inv-tbody');
+  var empty = document.getElementById('inv-empty');
+  var alertDiv = document.getElementById('inv-alerts');
+  tbody.innerHTML = '';
+  alertDiv.innerHTML = '';
+  empty.style.display = products.length ? 'none' : 'block';
+  var lowItems = products.filter(function(p){ return p.stock <= p.alert_stock; });
+  if (lowItems.length) {
+    alertDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-triangle-exclamation"></i><div><strong>在庫アラート：</strong>' + lowItems.map(function(p){ return p.name + '（' + p.stock + '個）'; }).join('、') + '</div></div>';
+  }
+  products.forEach(function(p) {
+    var low = p.stock <= p.alert_stock;
+    var pct = p.qty > 0 ? Math.round(p.stock / p.qty * 100) : 0;
+    var bc = p.stock === 0 ? '#e74c3c' : low ? '#f0a500' : '#27ae60';
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><strong>' + esc(p.name) + '</strong></td>' +
+      '<td><span class="badge badge-gray">' + esc(p.category) + '</span></td>' +
+      '<td style="color:' + bc + ';font-weight:500">' + p.stock + '個</td>' +
+      '<td style="color:#aaa">' + p.alert_stock + '個</td>' +
+      '<td><span class="badge ' + (p.stock === 0 ? 'badge-red' : low ? 'badge-amber' : 'badge-green') + '">' + (p.stock === 0 ? '在庫切れ' : low ? '要補充' : '正常') + '</span></td>' +
+      '<td><div style="display:flex;align-items:center;gap:8px"><input type="number" value="' + p.stock + '" style="width:70px;padding:5px 8px;font-size:12px;border:1px solid #e8e6e0;border-radius:6px;font-family:DM Mono,monospace" onchange="updateStock(\'' + p.id + '\',this.value)"/><div class="bar-bg" style="width:80px"><div class="bar-fill" style="width:' + Math.min(100, pct) + '%;background:' + bc + '"></div></div><span style="font-size:11px;color:#aaa">' + pct + '%</span></div></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function updateStock(id, val) {
+  try {
+    var stock = parseInt(val) || 0;
+    await sbFetch('products', 'PATCH', { stock: stock }, 'id=eq.' + id);
+    var prod = products.find(function(p){ return p.id === id; });
+    if (prod) prod.stock = stock;
+    updateAlertBadge();
+    showToast('在庫を更新しました', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function updateAlertBadge() {
+  var count = products.filter(function(p){ return p.stock <= p.alert_stock; }).length;
+  var badge = document.getElementById('alert-badge');
+  badge.style.display = count > 0 ? 'inline' : 'none';
+  badge.textContent = count;
+}
+
+// ============================================================
+// ダッシュボード
+// ============================================================
+function renderDashboard() {
+  var now = new Date();
+  var thisMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  var monthlySales = sales.filter(function(s){ return s.sale_date && s.sale_date.startsWith(thisMonth); });
+  var totRev = monthlySales.reduce(function(a, s){ return a + parseFloat(s.price) * parseFloat(s.qty); }, 0);
+  var totProfit = monthlySales.reduce(function(a, s){ return a + parseFloat(s.profit); }, 0);
+  var avgMargin = totRev > 0 ? (totProfit / totRev * 100) : 0;
+  var alertCount = products.filter(function(p){ return p.stock <= p.alert_stock; }).length;
+
+  document.getElementById('d-rev').textContent = '₱' + totRev.toFixed(0);
+  document.getElementById('d-profit').textContent = (totProfit >= 0 ? '+' : '') + '₱' + totProfit.toFixed(0);
+  document.getElementById('d-margin').textContent = avgMargin.toFixed(1) + '%';
+  document.getElementById('d-count').textContent = monthlySales.length + '件';
+  document.getElementById('d-products').textContent = products.length + '種';
+  document.getElementById('d-alerts').textContent = alertCount + '件';
+  document.getElementById('d-alerts').className = 'metric-value ' + (alertCount > 0 ? 'red' : 'green');
+
+  var alertDiv = document.getElementById('dash-alerts');
+  alertDiv.innerHTML = alertCount > 0
+    ? '<div class="alert alert-warning"><i class="fas fa-triangle-exclamation"></i> 在庫アラートが ' + alertCount + ' 件あります。<button class="btn btn-sm" style="margin-left:8px" onclick="goTo(\'inventory\')">確認する</button></div>'
+    : '';
+
+  var tbody = document.getElementById('dash-sales-tbody');
+  var empty = document.getElementById('dash-sales-empty');
+  tbody.innerHTML = '';
+  empty.style.display = sales.length ? 'none' : 'block';
+  sales.slice(0, 10).forEach(function(s) {
+    var rev = parseFloat(s.price) * parseFloat(s.qty);
+    var profit = parseFloat(s.profit);
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="font-family:DM Mono,monospace;font-size:12px">' + s.sale_date + '</td>' +
+      '<td>' + esc(s.product_name) + '</td>' +
+      '<td><span class="badge badge-blue">' + (chLabels[s.channel] || s.channel) + '</span></td>' +
+      '<td>' + s.qty + '</td>' +
+      '<td>₱' + rev.toFixed(0) + '</td>' +
+      '<td style="color:' + (profit >= 0 ? '#27ae60' : '#e74c3c') + ';font-weight:500">' + (profit >= 0 ? '+' : '') + '₱' + profit.toFixed(0) + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// レポート
+// ============================================================
+function renderReport() {
+  var totRev = sales.reduce(function(a,s){ return a + parseFloat(s.price)*parseFloat(s.qty); }, 0);
+  var totCost = sales.reduce(function(a,s){ return a + parseFloat(s.unit_cost)*parseFloat(s.qty); }, 0);
+  var totProfit = sales.reduce(function(a,s){ return a + parseFloat(s.profit); }, 0);
+  var avgM = totRev > 0 ? (totProfit/totRev*100) : 0;
+  document.getElementById('rpt-rev').textContent = '₱' + totRev.toFixed(0);
+  document.getElementById('rpt-cost').textContent = '₱' + totCost.toFixed(0);
+  document.getElementById('rpt-profit').textContent = (totProfit>=0?'+':'') + '₱' + totProfit.toFixed(0);
+  document.getElementById('rpt-profit').className = 'metric-value ' + (totProfit>=0?'green':'red');
+  document.getElementById('rpt-margin').textContent = avgM.toFixed(1) + '%';
+  document.getElementById('rpt-count').textContent = sales.length;
+  document.getElementById('rpt-prods').textContent = products.length;
+
+  var chMap = {};
+  sales.forEach(function(s){
+    if (!chMap[s.channel]) chMap[s.channel] = {cnt:0,rev:0,profit:0};
+    chMap[s.channel].cnt++;
+    chMap[s.channel].rev += parseFloat(s.price)*parseFloat(s.qty);
+    chMap[s.channel].profit += parseFloat(s.profit);
+  });
+  var chTbody = document.getElementById('ch-tbody');
+  chTbody.innerHTML = '';
+  document.getElementById('ch-empty').style.display = sales.length ? 'none' : 'block';
+  Object.entries(chMap).forEach(function(e) {
+    var ch=e[0], d=e[1], m=d.rev>0?(d.profit/d.rev*100):0;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><span class="badge badge-blue">'+(chLabels[ch]||ch)+'</span></td><td>'+d.cnt+'</td><td>₱'+d.rev.toFixed(0)+'</td><td style="color:'+(d.profit>=0?'#27ae60':'#e74c3c')+';font-weight:500">'+(d.profit>=0?'+':'')+'₱'+d.profit.toFixed(0)+'</td><td><span class="badge '+(m>=25?'badge-green':m>=10?'badge-amber':'badge-red')+'">'+m.toFixed(1)+'%</span></td>';
+    chTbody.appendChild(tr);
+  });
+
+  var pdMap = {};
+  sales.forEach(function(s){
+    if (!pdMap[s.product_name]) pdMap[s.product_name]={qty:0,rev:0,profit:0};
+    pdMap[s.product_name].qty+=parseFloat(s.qty);
+    pdMap[s.product_name].rev+=parseFloat(s.price)*parseFloat(s.qty);
+    pdMap[s.product_name].profit+=parseFloat(s.profit);
+  });
+  var pdTbody = document.getElementById('pd-tbody');
+  pdTbody.innerHTML = '';
+  document.getElementById('pd-empty').style.display = sales.length ? 'none' : 'block';
+  Object.entries(pdMap).forEach(function(e) {
+    var name=e[0],d=e[1],m=d.rev>0?(d.profit/d.rev*100):0;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+esc(name)+'</td><td>'+d.qty+'個</td><td>₱'+d.rev.toFixed(0)+'</td><td style="color:'+(d.profit>=0?'#27ae60':'#e74c3c')+';font-weight:500">'+(d.profit>=0?'+':'')+'₱'+d.profit.toFixed(0)+'</td><td><span class="badge '+(m>=25?'badge-green':m>=10?'badge-amber':'badge-red')+'">'+m.toFixed(1)+'%</span></td><td>'+(m>=25?'優良':m>=10?'要改善':'要見直し')+'</td>';
+    pdTbody.appendChild(tr);
+  });
+}
+
+function switchReport(id, btn) {
+  ['summary','channel','product'].forEach(function(r){
+    document.getElementById('rpt-'+r).style.display = r===id ? 'block' : 'none';
+  });
+  document.querySelectorAll('#page-report .btn').forEach(function(b){ b.className='btn btn-sm'; });
+  btn.className = 'btn btn-dark btn-sm';
+}
+
+// ============================================================
+// 収支計算
+// ============================================================
+function calcSim() {
+  var cost=pf('c-cost'), qty=pf('c-qty')||1, ship=pf('c-ship'), duty=pf('c-duty');
+  var fx=parseFloat(document.getElementById('c-fx').value)||CFG.fxRate, misc=pf('c-misc');
+  var ps=parseFloat(document.getElementById('c-p-store').value)||0;
+  var pe=parseFloat(document.getElementById('c-p-ec').value)||0;
+  var pw=parseFloat(document.getElementById('c-p-ws').value)||0;
+  if (!cost) { document.getElementById('sim-result').style.display='none'; return; }
+  var unitJPY = cost + (ship+duty)/qty;
+  var unitPeso = unitJPY*fx + misc;
+  document.getElementById('sim-result').style.display='block';
+  document.getElementById('r-jpy').textContent = '¥'+unitJPY.toFixed(0);
+  document.getElementById('r-peso').textContent = '₱'+unitPeso.toFixed(2);
+
+  function setChannel(mId,pId,bId,price) {
+    if (!price) { document.getElementById(mId).textContent='—'; document.getElementById(pId).textContent='価格未入力'; return; }
+    var profit=price-unitPeso, margin=price>0?(profit/price*100):0;
+    var el=document.getElementById(mId);
+    el.textContent=margin.toFixed(1)+'%';
+    el.style.color=margin>=25?'#27ae60':margin>=10?'#f0a500':'#e74c3c';
+    document.getElementById(pId).textContent=(profit>=0?'+':'')+'₱'+profit.toFixed(2)+'/個';
+    var bar=document.getElementById(bId);
+    bar.style.width=Math.max(0,Math.min(100,margin))+'%';
+    bar.style.background=margin>=25?'#27ae60':margin>=10?'#f0a500':'#e74c3c';
+  }
+  setChannel('r-sm','r-sp','r-sb',ps);
+  setChannel('r-em','r-ep','r-eb',pe);
+  setChannel('r-wm','r-wp','r-wb',pw);
+  var total=(ps-unitPeso)*qty;
+  document.getElementById('r-total').textContent=(total>=0?'+':'')+'₱'+total.toFixed(0);
+  var m=ps>0?((ps-unitPeso)/ps*100):null;
+  var msg='';
+  if(m===null) msg='実店舗の販売価格を入力すると判定が表示されます。';
+  else if(m>=40) msg='✅ 優秀な利益率です！積極的に仕入れを検討しましょう。為替変動のバッファも十分あります。';
+  else if(m>=25) msg='⭐ 良好な利益率です。フィリピン物販の目標ライン（25%以上）をクリアしています。';
+  else if(m>=10) msg='⚠️ 利益率がやや低めです。販売価格を5〜10%引き上げるか、まとめ仕入れで送料コストを下げることで改善できます。';
+  else msg='❌ 利益率が低すぎます。仕入れ価格・送料・販売価格を見直してください。';
+  var msgEl=document.getElementById('sim-msg');
+  msgEl.textContent=msg;
+}
+
+function resetCalc() {
+  ['c-name','c-cost','c-qty','c-ship','c-duty','c-misc','c-p-store','c-p-ec','c-p-ws'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('c-fx').value = CFG.fxRate;
+  document.getElementById('sim-result').style.display='none';
+}
+
+function saveFromCalc() {
+  if (!isAdmin) { showToast('商品登録は管理者のみ可能です', 'error'); return; }
+  var fields=['p-name','p-cat','p-cost','p-qty','p-ship','p-duty','p-fx','p-misc','p-alert','p-store','p-ec','p-ws'];
+  var map={
+    'p-name':'c-name','p-cat':'c-cat','p-cost':'c-cost','p-qty':'c-qty',
+    'p-ship':'c-ship','p-duty':'c-duty','p-fx':'c-fx','p-misc':'c-misc',
+    'p-alert':'c-alert','p-store':'c-p-store','p-ec':'c-p-ec','p-ws':'c-p-ws'
+  };
+  fields.forEach(function(id){ document.getElementById(id).value = document.getElementById(map[id]).value || ''; });
+  goTo('products');
+  addProduct();
+}
+
+// ============================================================
+// AI分析
+// ============================================================
+async function askAI() {
+  var topic = document.getElementById('ai-topic').value;
+  var custom = document.getElementById('ai-custom').value;
+  document.getElementById('ai-loading').style.display = 'inline';
+  document.getElementById('ai-result').style.display = 'none';
+
+  var totRev = sales.reduce(function(a,s){ return a+parseFloat(s.price)*parseFloat(s.qty); }, 0);
+  var totProfit = sales.reduce(function(a,s){ return a+parseFloat(s.profit); }, 0);
+  var avgM = totRev>0?(totProfit/totRev*100):0;
+
+  var chMap={};
+  sales.forEach(function(s){
+    if(!chMap[s.channel])chMap[s.channel]={rev:0,profit:0};
+    chMap[s.channel].rev+=parseFloat(s.price)*parseFloat(s.qty);
+    chMap[s.channel].profit+=parseFloat(s.profit);
+  });
+
+  var ctx = '【事業概要】フィリピン（ホテル内マッサージ店）の日本コスメ物販\n' +
+    '【登録商品数】' + products.length + '種\n' +
+    products.map(function(p){
+      var m=p.price_store>0?((p.price_store-p.unit_cost_peso)/p.price_store*100):0;
+      return '・'+p.name+'（'+p.category+'）原価₱'+parseFloat(p.unit_cost_peso).toFixed(1)+' / 店舗₱'+p.price_store+' / 利益率'+m.toFixed(1)+'% / 在庫'+p.stock+'個';
+    }).join('\n') + '\n' +
+    '【売上実績】' + sales.length + '件 / 総売上₱'+totRev.toFixed(0)+' / 総利益₱'+totProfit.toFixed(0)+' / 平均利益率'+avgM.toFixed(1)+'%\n' +
+    '【チャネル別】' + Object.entries(chMap).map(function(e){ return (chLabels[e[0]]||e[0])+': ₱'+e[1].rev.toFixed(0); }).join(' / ');
+
+  var prompts = {
+    overall: ctx + '\n\n上記データを分析し、収益性の評価と改善提案を日本語で400字程度で具体的に教えてください。',
+    channel: ctx + '\n\nチャネル別データを元に、実店舗・Shopee/Lazada・卸売の最適戦略を日本語で400字程度で教えてください。',
+    pricing: ctx + '\n\n商品ラインナップと利益率を元に、フィリピン市場での価格設定改善提案を日本語で400字程度で教えてください。',
+    product: ctx + '\n\n商品データを元に、利益率が低い商品の見直しや追加すべき商品カテゴリを日本語で400字程度でアドバイスしてください。',
+    risk: ctx + '\n\nフィリピンへの日本コスメ輸出ビジネスにおける為替・関税・在庫リスク対策を日本語で400字程度で教えてください。',
+    custom: ctx + '\n\n' + (custom || 'フィリピン物販についてアドバイスをください。')
+  };
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompts[topic] }]
+      })
+    });
+    var data = await res.json();
+    document.getElementById('ai-text').textContent = data.content?.[0]?.text || '回答を取得できませんでした。';
+    document.getElementById('ai-result').style.display = 'block';
+  } catch(e) {
+    document.getElementById('ai-text').textContent = 'エラーが発生しました。';
+    document.getElementById('ai-result').style.display = 'block';
+  }
+  document.getElementById('ai-loading').style.display = 'none';
+}
+
+// ============================================================
+// 設定保存
+// ============================================================
+function saveSettings() {
+  if (!isAdmin) { showToast('設定変更は管理者のみ可能です', 'error'); return; }
+  var url = document.getElementById('cfg-url').value.trim();
+  var key = document.getElementById('cfg-key').value.trim();
+  var store = document.getElementById('cfg-store').value.trim();
+  var fx = parseFloat(document.getElementById('cfg-fx').value) || 3.8;
+  if (url) { localStorage.setItem('sb_url', url); CFG.supabaseUrl = url; }
+  if (key) { localStorage.setItem('sb_key', key); CFG.supabaseKey = key; }
+  localStorage.setItem('store_name', store); CFG.storeName = store;
+  localStorage.setItem('fx_rate', fx); CFG.fxRate = fx;
+  document.getElementById('sidebar-store-name').textContent = store;
+  document.getElementById('fx-display').textContent = fx.toFixed(2);
+  document.getElementById('c-fx').value = fx;
+  if (url && key) { document.getElementById('config-banner').classList.add('hidden'); setSyncStatus('ok'); loadAll(); }
+  showToast('設定を保存しました', 'success');
+}
+
+function changePassword() {
+  if (!isAdmin) { showToast('管理者のみ変更可能です', 'error'); return; }
+  var pw1 = document.getElementById('cfg-newpw').value;
+  var pw2 = document.getElementById('cfg-newpw2').value;
+  if (!pw1) { showToast('パスワードを入力してください', 'error'); return; }
+  if (pw1 !== pw2) { showToast('パスワードが一致しません', 'error'); return; }
+  localStorage.setItem('admin_pw', pw1); CFG.adminPassword = pw1;
+  document.getElementById('cfg-newpw').value = '';
+  document.getElementById('cfg-newpw2').value = '';
+  showToast('パスワードを変更しました', 'success');
+}
+
+function showConfigHelp() {
+  alert('【Supabase 設定手順】\n\n1. https://supabase.com で無料アカウントを作成\n2. 新しいプロジェクトを作成\n3. SQL Editor に database.sql の内容を貼り付けて実行\n4. Settings → API から URL と anon key をコピー\n5. このアプリの「設定」ページに貼り付けて保存');
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function pf(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function v(id) { return document.getElementById(id); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (type||'');
+  setTimeout(function(){ t.className=''; }, 3000);
+}
+
+function setSyncStatus(status) {
+  var dot = document.getElementById('sync-dot');
+  var lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + (status==='err'?'err':status==='loading'?'loading':'');
+  lbl.textContent = status==='ok'?'接続済み':status==='loading'?'同期中...':'未接続';
+}
+</script>
+</body>
+</html>
